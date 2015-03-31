@@ -364,7 +364,8 @@ func! Beautifier(...)
 
   " Define type of file
   let type = get(a:000, 0, expand('%:e'))
-  let allowedTypes = get(b:config_Beautifier[type], 'extensions')
+  let opts = get(b:config_Beautifier, type, get(b:config_Beautifier, '*'))
+  let allowedTypes = get(opts, 'extensions')
 
   if !s:isAllowedType(type, allowedTypes)
     call WarningMsg('File type is not allowed!')
@@ -374,7 +375,6 @@ func! Beautifier(...)
   let line1 = get(a:000, 1, '1')
   let line2 = get(a:000, 2, '$')
 
-  let opts = b:config_Beautifier[type]
   let path = get(opts, 'path', s:getPathByType(type))
   let path = expand(path)
   let path = fnameescape(path)
