@@ -97,21 +97,17 @@ endfun
 func! s:processingEditconfigFile(content)
   let opts = {}
   let content = a:content
-
-  for type in s:supportedFileTypes
-    " Get settings for javascript files
-    " collect all data after [**.js] to
-    " empty string
-    let index = index(content, '[**.'.type.']')
-    let l:value = {}
-
-    if index == -1
-      " If section doesn't define then set it how
-      " empty object
-      " @fix issue-25
-      let opts[type] = l:value
-      continue
-    endif
+  let index=0
+  while(index <= len(content))
+	let line = get(content, index)
+	let type = ''
+	let l:value = {}
+	if(strpart(line, 0, 1) == '[')
+	  let type = matchlist(line, '\[\**\(\.\(.*\)\)\?\]')[2]
+	  if type.'' == "" && matchlist(line, '\[\**\]')[0].'' != ''
+		 let type = '*'
+	  endif
+	endif
 
     " line with declaration [**.type]
     " we shoul skip.
@@ -155,8 +151,10 @@ func! s:processingEditconfigFile(content)
       let line = get(content, index)
     endwhile
 
+	if type.'' != ""
     let opts[type] = l:value
-  endfor
+    endif
+  endwhile
 
   return opts
 endfun
