@@ -32,7 +32,7 @@ let s:supportedFileTypes = ['js', 'css', 'html', 'jsx', 'json']
 
 "% Helper functions and variables
 let s:plugin_Root_directory = fnamemodify(expand("<sfile>"), ":h")
-let s:paths_Editorconfig = map(['$HOME/.editorconfig', '$HOME/.vim/.editorconfig', s:plugin_Root_directory.'/.editorconfig'], 'expand(v:val)')
+let s:paths_Editorconfig = map([expand('%:p:h').'/.editorconfig', '$HOME/.editorconfig', '$HOME/.vim/.editorconfig', s:plugin_Root_directory.'/.editorconfig'], 'expand(v:val)')
 
 " Function for debugging
 " @param {Any} content Any type which will be converted
@@ -97,21 +97,17 @@ endfun
 func! s:processingEditconfigFile(content)
   let opts = {}
   let content = a:content
-
-  for type in s:supportedFileTypes
-    " Get settings for javascript files
-    " collect all data after [**.js] to
-    " empty string
-    let index = index(content, '[**.'.type.']')
-    let l:value = {}
-
-    if index == -1
-      " If section doesn't define then set it how
-      " empty object
-      " @fix issue-25
-      let opts[type] = l:value
-      continue
-    endif
+  let index=0
+  while(index <= len(content))
+	let line = get(content, index)
+	let type = ''
+	let l:value = {}
+	if(strpart(line, 0, 1) == '[')
+	  let type = matchlist(line, '\[\**\(\.\(.*\)\)\?\]')[2]
+	  if type.'' == "" && matchlist(line, '\[\**\]')[0].'' != ''
+		 let type = '*'
+	  endif
+	endif
 
     " line with declaration [**.type]
     " we shoul skip.
@@ -155,8 +151,10 @@ func! s:processingEditconfigFile(content)
       let line = get(content, index)
     endwhile
 
+	if type.'' != ""
     let opts[type] = l:value
-  endfor
+    endif
+  endwhile
 
   return opts
 endfun
@@ -366,7 +364,8 @@ func! Beautifier(...)
 
   " Define type of file
   let type = get(a:000, 0, expand('%:e'))
-  let allowedTypes = get(b:config_Beautifier[type], 'extensions')
+  let opts = get(b:config_Beautifier, type, get(b:config_Beautifier, '*'))
+  let allowedTypes = get(opts, 'extensions')
 
   if !s:isAllowedType(type, allowedTypes)
     call WarningMsg('File type is not allowed!')
@@ -376,7 +375,6 @@ func! Beautifier(...)
   let line1 = get(a:000, 1, '1')
   let line2 = get(a:000, 2, '$')
 
-  let opts = b:config_Beautifier[type]
   let path = get(opts, 'path', s:getPathByType(type))
   let path = expand(path)
   let path = fnameescape(path)
